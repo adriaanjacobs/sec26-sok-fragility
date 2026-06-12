@@ -73,9 +73,3 @@ for defense in minimal_defense_sets:
         else:
             print(f"\t{result.defense} not bypassed")
 
-
-
-print('\nThis script is very easy to modify if you want a different output. Generating the Table from here should also be easy')
-
-
-
