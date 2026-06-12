@@ -1135,6 +1135,17 @@ def get_defense_methods():
             methods.append((name, func))
     return methods
     
+class Colors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKCYAN = '\033[96m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+
 def run_fragility_test(defenses, graph = None, prefix="",  include_threat_model: bool = False, print_results = True):
     if not graph:
         graph = ExploitGraph()
@@ -1150,14 +1161,19 @@ def run_fragility_test(defenses, graph = None, prefix="",  include_threat_model:
         func = getattr(Defenses, name)
         apply_defense(func)
 
-    def myprint(str):
+    def myprint(s):
         if print_results:
-            print(str)
+            print(s)
         
-    myprint(f"{prefix}initial nodes: {explorer.initial_reached_nodes}")
+    p_format = f"{Colors.OKCYAN}{Colors.BOLD}{prefix}{Colors.ENDC}" if prefix else ""
+    initial_nodes = [n.ref for n in explorer.initial_reached_nodes]
+    myprint(f"{p_format}initial nodes:     {Colors.OKCYAN}{initial_nodes}{Colors.ENDC}")
     reached_nodes = explorer.get_reached_nodes()
-    myprint(f"{prefix}reached goals: {[n for n in reached_nodes if n.type == 'goal']}")
-    myprint(f"{prefix}non-reached goals: {[n for n in graph.nodes.values() if n not in reached_nodes and n.type == 'goal']}")
+    reached_goals = [n.ref for n in reached_nodes if n.type == 'goal']
+    non_reached_goals = [n.ref for n in graph.nodes.values() if n not in reached_nodes and n.type == 'goal']
+    
+    myprint(f"{p_format}reached goals:     {Colors.FAIL}{reached_goals}{Colors.ENDC}")
+    myprint(f"{p_format}non-reached goals: {Colors.OKGREEN}{non_reached_goals}{Colors.ENDC}")
     if print_results:
         export_to_file(graph, f'{prefix}defense', explorer, highlight_defendable=False)
 
@@ -1233,9 +1249,11 @@ if __name__ == '__main__':
     elif args.command == 'interop':
         for result in run_interop_test(args.set1, args.set2):
             if new_goals := result.was_bypassed():
-                print(f"\n{result.defense} got interop-bypassed! Goals {new_goals} are now possible")
+                new_goals_refs = [g.ref for g in new_goals]
+                print(f"\n{Colors.WARNING}{Colors.BOLD}{result.defense} got interop-bypassed!{Colors.ENDC} Goals {Colors.FAIL}{new_goals_refs}{Colors.ENDC} are now possible")
                 if (completely_new_goals := result.unlocked_completely_new_goals()):
-                    print(f"\t it now even allows completely new goals: {completely_new_goals}")
+                    completely_new_goals_refs = [g.ref for g in completely_new_goals]
+                    print(f"\t it now even allows completely new goals: {Colors.FAIL}{completely_new_goals_refs}{Colors.ENDC}")
                 export_to_file(result.explorer._graph, f'bypassed-defense-2', result.explorer, highlight_defendable=False)
     else:
         parser.print_help()
