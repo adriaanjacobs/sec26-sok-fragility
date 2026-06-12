@@ -9,9 +9,8 @@ class Explorer:
         self._graph = graph
         self.initial_reached_nodes = set[Node]()
         self.__reached_nodes = set[Node]()
-        self.inhibited_edges = dict[Edge, bool|str]() # map of edge to predicate. True = no predicate
+        self.inhibited_edges = set[Edge]()
         self.__reached_nodes_up_to_date = False
-        self.predicates = dict[str, bool]()
 
         # default reached nodes
         #   all entrypoints & dummy nodes without incoming edges
@@ -41,7 +40,6 @@ class Explorer:
         new_instance.initial_reached_nodes = other.initial_reached_nodes.copy()
         new_instance.__reached_nodes_up_to_date = False
         new_instance.inhibited_edges = other.inhibited_edges.copy()
-        new_instance.predicates = other.predicates.copy()
         return new_instance        
     
     def copy(self) -> Explorer:
@@ -49,34 +47,6 @@ class Explorer:
     
     def update_initial_nodes(self, nodes: Iterable[Node]) -> None:
         self.initial_reached_nodes.update(nodes)
-        self.__reached_nodes_up_to_date = False
-    
-    def get_affecting_predicates(self):
-        ret = set[str]()
-        for predicate in self.inhibited_edges.values():
-            if isinstance(predicate, str):
-                ret.add(predicate)
-        return ret
-    
-    def find_unassigned_predicate(self):
-        for pred in self.inhibited_edges.values():
-            if isinstance(pred, str) and not pred.startswith("not") and pred not in self.predicates:
-                return pred
-        return None
-    
-    def enumerate_predicate_combinations(self):
-        pred = self.find_unassigned_predicate()
-        if pred is None:
-            yield self.predicates
-            return
-        
-        self.predicates[pred] = True
-        self.__reached_nodes_up_to_date = False
-        yield from self.enumerate_predicate_combinations()
-        self.predicates[pred] = False
-        self.__reached_nodes_up_to_date = False
-        yield from self.enumerate_predicate_combinations()
-        del self.predicates[pred]
         self.__reached_nodes_up_to_date = False
     
     def mark_reached_initial(self, node : Node):
@@ -93,7 +63,15 @@ class Explorer:
         return node in self.__reached_nodes
     
     def inhibit(self, *edges: Edge|Node):
-        self.inhibit_predicated(True, *edges)
+        self.__reached_nodes_up_to_date = False
+        for edge in edges:
+            if isinstance(edge, Edge):
+                assert edge.is_defendable
+                self.inhibited_edges.add(edge)
+            else:
+                assert isinstance(edge, Node)
+                assert edge.type == "knowledge"
+                self.mark_not_reached_initial(edge)
 
     def inihibit_all_edges_from(self, *nodes: Node|str):
         for n in nodes:
@@ -120,37 +98,14 @@ class Explorer:
                     if edge.is_defendable:
                         self.inhibit(edge)
 
-    def inhibit_predicated(self, predicate: str|bool, *edges: Edge|Node):
-        self.__reached_nodes_up_to_date = False
-        for edge in edges:
-            if isinstance(edge, Edge):
-                assert edge.is_defendable
-                self.inhibited_edges[edge] = predicate
-            else:
-                assert isinstance(edge, Node)
-                assert edge.type == "knowledge"
-                self.mark_not_reached_initial(edge)
-
     def uninhibit(self, *edges: Edge):
         self.__reached_nodes_up_to_date = False
         for edge in edges:
             if edge in self.inhibited_edges:
-                del self.inhibited_edges[edge]
-
-    def evaluate_predicate(self, predicate: bool|str) -> bool:
-        if isinstance(predicate, bool):
-            return predicate
-        negated =  predicate.startswith("not ")
-        predicate = predicate.strip("not ")
-        if predicate in self.predicates:
-            return self.predicates[predicate] if not negated else not self.predicates[predicate]
-        raise Exception(f"predicate '{predicate}' not assigned")
+                self.inhibited_edges.remove(edge)
 
     def edge_inhibited(self, edge: Edge):
-        if edge not in self.inhibited_edges:
-            return False
-        predicate = self.inhibited_edges[edge]
-        return self.evaluate_predicate(predicate)
+        return edge in self.inhibited_edges
 
     def incoming_edge_reached(self, edge) -> bool:
         if isinstance(edge, IncomingANDEdges):

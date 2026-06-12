@@ -1155,13 +1155,11 @@ def run_fragility_test(defenses, graph = None, prefix="",  include_threat_model:
             print(str)
         
     myprint(f"{prefix}initial nodes: {explorer.initial_reached_nodes}")
-    for case in explorer.enumerate_predicate_combinations():
-        myprint(f"{prefix}for case: {case}:")
-        reached_nodes = explorer.get_reached_nodes()
-        myprint(f"\treached goals: {[n for n in reached_nodes if n.type == 'goal']}")
-        myprint(f"\tnon-reached goals: {[n for n in graph.nodes.values() if n not in reached_nodes and n.type == 'goal']}")
-        if print_results:
-            export_to_file(graph, f'{prefix}defense', explorer, highlight_defendable=False)
+    reached_nodes = explorer.get_reached_nodes()
+    myprint(f"{prefix}reached goals: {[n for n in reached_nodes if n.type == 'goal']}")
+    myprint(f"{prefix}non-reached goals: {[n for n in graph.nodes.values() if n not in reached_nodes and n.type == 'goal']}")
+    if print_results:
+        export_to_file(graph, f'{prefix}defense', explorer, highlight_defendable=False)
 
     return explorer
 

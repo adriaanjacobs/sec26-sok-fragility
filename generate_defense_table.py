@@ -92,7 +92,7 @@ def compress_int_ranges(nums):
 
 def defense_notation(graph: ExploitGraph, explorer: Explorer):
     edgemap = dict[str,list[int]]()
-    for edge in explorer.inhibited_edges.keys():
+    for edge in explorer.inhibited_edges:
         desc = edgeToID(graph, edge)
         clas = "".join(desc.split('-')[:-1])
         id = desc.split('-')[-1]
