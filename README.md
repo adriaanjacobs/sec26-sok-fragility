@@ -1,6 +1,6 @@
 # SoK: On the Fragility of Memory Error Exploit Mitigations
 
-This repository implements a graph model for memory error exploitation, as described in our USENIX'26 paper. 
+This repository implements a graph model for memory error exploitation, as described in [our USENIX'26 paper](https://adriaanjacobs.github.io/files/sec26sokfragility.pdf). 
 ```bibtex
 @inproceedings{jacobs2026sokfragility,
   title={{SoK:} On the Fragility of Memory Error Exploit Mitigations},
